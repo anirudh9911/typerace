@@ -1,0 +1,12 @@
+{
+  "name": "typerace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:server": "npm --workspace apps/server run start:dev"
+  }
+}

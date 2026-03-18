@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: typerace_postgres
+    environment:
+      POSTGRES_USER: typerace
+      POSTGRES_PASSWORD: typerace
+      POSTGRES_DB: typerace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    
+    container_name: typerace_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
