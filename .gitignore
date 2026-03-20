@@ -3,4 +3,4 @@ node_modules
 .next
 dist
 Dockerfile*
-*.log
+*.log.DS_Store
