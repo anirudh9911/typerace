@@ -20,8 +20,13 @@ export default function TypingTest() {
   const [isRunning, setIsRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [finalElapsedTime, setFinalElapsedTime] = useState<number | null>(null);
-
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [opponentProgress, setOpponentProgress] = useState<{
+  userId: string;
+  cursor: number;
+  wpm: number;
+  accuracy: number;
+} | null>(null);
 
   const resetTest = () => {
     setCursor(0);
@@ -31,6 +36,9 @@ export default function TypingTest() {
     setIsRunning(false);
     setIsFinished(false);
     setFinalElapsedTime(null);
+    if (socket) {
+      socket.emit('player_reset', { roomId: 'room1' });
+    }
   };
 
   useEffect(() => {
@@ -58,18 +66,44 @@ export default function TypingTest() {
   }, []);
 
 
-  useEffect(() => {
-    if(!socket){
-      return;
-    }
-    socket.on("progress_update", (data)=>{
+  useEffect(() =>{
+    if(!socket)return;
+
+    const handleProgressUpdate = (data : {
+      userId: string,
+      cursor: number,
+      wpm: number,
+      accuracy: number
+    }) =>{
       console.log("Other user: ", data);
-    })
+      setOpponentProgress(data);
+    };
+
+    socket.on("progress_update", handleProgressUpdate);
 
     return () =>{
-      socket.off("progress_update");
-    }
+      socket.off('progress_update', handleProgressUpdate);
+    };
   }, [socket])
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePlayerReset = (data: {
+      userId: string;
+      cursor: number;
+      wpm: number;
+      accuracy: number;
+    }) => {
+      setOpponentProgress(data);
+    };
+
+    socket.on('player_reset', handlePlayerReset);
+
+    return () => {
+      socket.off('player_reset', handlePlayerReset);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (!isRunning || isFinished) return;
@@ -187,6 +221,10 @@ export default function TypingTest() {
     return 'text-neutral-500';
   };
 
+  const opponentPercent = opponentProgress
+  ? Math.min((opponentProgress.cursor / text.length) * 100, 100)
+  : 0;
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 px-6 text-white">
       <div className="flex gap-6 text-sm text-neutral-300">
@@ -196,6 +234,29 @@ export default function TypingTest() {
         <div>Correct: <span className="text-white">{correctCount}</span></div>
         <div>Incorrect: <span className="text-white">{incorrectCount}</span></div>
       </div>
+      
+      {opponentProgress && (
+        <div className="w-full max-w-2xl rounded-md bg-neutral-800 p-4">
+          <div className="mb-2 flex justify-between text-sm text-neutral-300">
+            <span>Opponent</span>
+            <span>
+              WPM: <span className="text-white">{opponentProgress.wpm}</span> | Accuracy:{' '}
+              <span className="text-white">{opponentProgress.accuracy}%</span>
+            </span>
+          </div>
+
+          <div className="h-3 w-full overflow-hidden rounded bg-neutral-700">
+            <div
+              className="h-full bg-blue-500 transition-all duration-100"
+              style={{ width: `${opponentPercent}%` }}
+            />
+          </div>
+
+          <div className="mt-2 text-xs text-neutral-400">
+            Cursor: {opponentProgress.cursor} / {text.length}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl text-2xl leading-relaxed">
         {text.split('').map((char, index) => {

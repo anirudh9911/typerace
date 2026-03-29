@@ -37,6 +37,15 @@ socket.on('progress_update', (data) => {
   });
 });
 
+socket.on('player_reset', ({ roomId }) => {
+  socket.to(roomId).emit('player_reset', {
+    userId: socket.id,
+    cursor: 0,
+    wpm: 0,
+    accuracy: 100,
+  });
+});
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
