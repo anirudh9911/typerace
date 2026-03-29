@@ -22,13 +22,17 @@ export default function TypingTest() {
   const [finalElapsedTime, setFinalElapsedTime] = useState<number | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [opponentProgress, setOpponentProgress] = useState<{
-  userId: string;
-  cursor: number;
-  wpm: number;
-  accuracy: number;
-} | null>(null);
+    userId: string;
+    cursor: number;
+    wpm: number;
+    accuracy: number;
+  } | null>(null);
+  const [playerName, setPlayerName] = useState('');
+  const [roomInput, setRoomInput] = useState('');
+  const [roomId, setRoomId] = useState('');
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
-  const resetTest = () => {
+  const resetLocalState = () => {
     setCursor(0);
     setTypedCount(0);
     setCharStates(Array(text.length).fill('untyped'));
@@ -36,8 +40,14 @@ export default function TypingTest() {
     setIsRunning(false);
     setIsFinished(false);
     setFinalElapsedTime(null);
-    if (socket) {
-      socket.emit('player_reset', { roomId: 'room1' });
+    setOpponentProgress(null);
+  };
+
+  const resetTest = () => {
+    resetLocalState();
+
+    if (socket && roomId) {
+      socket.emit('player_reset', { roomId });
     }
   };
 
@@ -51,11 +61,10 @@ export default function TypingTest() {
 
   // Socket test connection
   useEffect(() => {
-    const s: Socket = io('http://localhost:3001');
+    const s = io('http://localhost:3001');
 
     s.on('connect', () => {
-      console.log('Connected to socket server:', s.id);
-      s.emit('join_room', 'room1');
+      console.log('Connected:', s.id);
     });
 
     setSocket(s);
@@ -126,6 +135,15 @@ export default function TypingTest() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      // 🚨 Ignore input fields
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
       if (isFinished) return;
 
       if (!isRunning && e.key.length === 1) {
@@ -171,7 +189,7 @@ export default function TypingTest() {
 
       if(socket)
         {socket.emit("progress_update", {
-        roomId: 'room1',
+        roomId,
         cursor: nextCursor,
         wpm,
         accuracy
@@ -189,7 +207,7 @@ export default function TypingTest() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [cursor, text, isRunning, isFinished, timeLeft]);
+  }, [cursor, text, isRunning, isFinished, timeLeft, socket, roomId]);
 
   const correctCount = useMemo(
     () => charStates.filter((state) => state === 'correct').length,
@@ -225,8 +243,92 @@ export default function TypingTest() {
   ? Math.min((opponentProgress.cursor / text.length) * 100, 100)
   : 0;
 
+  const generateRoomCode = () => {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  };
+
+const handleCreateRoom = () => {
+  if (!socket) return;
+
+  const newRoomId = generateRoomCode();
+  resetLocalState();
+
+  socket.emit('join_room', newRoomId);
+
+  setRoomId(newRoomId);
+  setRoomInput(newRoomId);
+  setHasJoinedRoom(true);
+};
+
+const handleJoinRoom = () => {
+  if (!socket || !roomInput.trim()) return;
+
+  const trimmedRoom = roomInput.trim().toUpperCase();
+  resetLocalState();
+
+  socket.emit('join_room', trimmedRoom);
+
+  setRoomId(trimmedRoom);
+  setHasJoinedRoom(true);
+};
+
+  if (!hasJoinedRoom) {
   return (
+    <main className="min-h-screen flex items-center justify-center bg-neutral-900 px-6 text-white">
+      <div className="w-full max-w-md rounded-xl bg-neutral-800 p-6 shadow-lg">
+        <h1 className="mb-6 text-2xl font-semibold">Typio</h1>
+
+        <div className="mb-4">
+          <label className="mb-2 block text-sm text-neutral-300">Player Name</label>
+          <input
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Enter your name"
+            className="w-full rounded-md bg-neutral-700 px-3 py-2 text-white outline-none"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="mb-2 block text-sm text-neutral-300">Room Code</label>
+          <input
+            value={roomInput}
+            onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
+            placeholder="Enter room code"
+            className="w-full rounded-md bg-neutral-700 px-3 py-2 text-white outline-none"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleCreateRoom}
+            className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-500"
+          >
+            Create Room
+          </button>
+
+          <button
+            onClick={handleJoinRoom}
+            className="flex-1 rounded-md bg-neutral-700 px-4 py-2 text-white hover:bg-neutral-600"
+          >
+            Join Room
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+  return (
+    
     <main className="min-h-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 px-6 text-white">
+      <div className="text-sm text-neutral-400">
+          Room: <span className="text-white">{roomId}</span>
+          {playerName && (
+            <>
+              {' '}| Player: <span className="text-white">{playerName}</span>
+            </>
+          )}
+      </div>
       <div className="flex gap-6 text-sm text-neutral-300">
         <div>Time: <span className="text-white">{timeLeft}s</span></div>
         <div>WPM: <span className="text-white">{wpm}</span></div>

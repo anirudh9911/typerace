@@ -25,17 +25,17 @@ io.on('connection', (socket) => {
   });
 
   // Send message to room
-socket.on('progress_update', (data) => {
-  console.log('Received progress from client:', data);
-  const { roomId, cursor, wpm, accuracy } = data;
+  socket.on('progress_update', (data) => {
+    console.log('Received progress from client:', data);
+    const { roomId, cursor, wpm, accuracy } = data;
 
-  socket.to(roomId).emit('progress_update', {
-    userId: socket.id,
-    cursor,
-    wpm,
-    accuracy,
+    socket.to(roomId).emit('progress_update', {
+      userId: socket.id,
+      cursor,
+      wpm,
+      accuracy,
+    });
   });
-});
 
 socket.on('player_reset', ({ roomId }) => {
   socket.to(roomId).emit('player_reset', {
