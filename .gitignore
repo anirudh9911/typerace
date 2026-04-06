@@ -1,6 +1,8 @@
 node_modules
 .env
+.env.local
 .next
 dist
 Dockerfile*
-*.log.DS_Store
+*.log
+.DS_Store

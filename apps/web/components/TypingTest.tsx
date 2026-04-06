@@ -68,7 +68,7 @@ export default function TypingTest() {
 
   // Socket test connection
   useEffect(() => {
-    const s = io('http://localhost:3001');
+    const s = io(process.env.NEXT_PUBLIC_SERVER_URL!);
 
     s.on('connect', () => {
       console.log('Connected:', s.id);
@@ -156,7 +156,7 @@ export default function TypingTest() {
     };
     const handleRaceResults = (results: { name: string; placement: number; wpm: number; accuracy: number }[]) => {
       setRaceResults(results);
-      fetch('http://localhost:3001/leaderboard')
+      fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/leaderboard`)
         .then((r) => r.json())
         .then(setLeaderboard)
         .catch(console.error);

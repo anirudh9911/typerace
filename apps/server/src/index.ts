@@ -7,11 +7,11 @@ import { createClient } from 'redis';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: process.env.CLIENT_URL ?? '*' }));
 app.use(express.json());
 
 const pool = new Pool({
-  connectionString: 'postgresql://typerace:typerace@localhost:5432/typerace',
+  connectionString: process.env.DATABASE_URL ?? 'postgresql://typerace:typerace@localhost:5432/typerace',
 });
 
 async function initDb() {
@@ -32,7 +32,7 @@ async function initDb() {
 // roomId -> (socketId -> playerName)
 const rooms = new Map<string, Map<string, string>>();
 
-const redis = createClient({ url: 'redis://localhost:6379' });
+const redis = createClient({ url: process.env.REDIS_URL ?? 'redis://localhost:6379' });
 redis.connect().then(() => console.log('Redis connected')).catch(console.error);
 
 async function restoreRoomsFromRedis() {
@@ -60,7 +60,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.CLIENT_URL ?? '*',
   },
 });
 
@@ -230,6 +230,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(3001, () => {
-  console.log('Server running on port 3001');
+const PORT = process.env.PORT ?? 3001;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
