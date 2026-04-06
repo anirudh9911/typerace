@@ -51,6 +51,10 @@ initDb()
   .then(() => restoreRoomsFromRedis())
   .catch(console.error);
 
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.get('/leaderboard', async (_req, res) => {
   const top10 = await redis.zRangeWithScores('leaderboard:best', 0, 9, { REV: true });
   res.json(top10.map((e, i) => ({ player_name: e.value, best_wpm: e.score, rank: i + 1 })));
