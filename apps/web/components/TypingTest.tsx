@@ -553,30 +553,55 @@ const handleJoinRoom = () => {
         <div>Incorrect: <span className="text-white">{incorrectCount}</span></div>
       </div>
       
-      {Object.values(opponentProgress).map((op) => {
-        const opPercent = Math.min((op.cursor / text.length) * 100, 100);
-        const opName = roomPlayers.find((p) => p.id === op.userId)?.name ?? 'Opponent';
+      {(() => {
+        const myId = socket?.id ?? '';
+        const myEntry = { userId: myId, cursor, wpm, accuracy };
+        const allPlayers = [
+          myEntry,
+          ...Object.values(opponentProgress),
+        ].sort((a, b) => b.cursor - a.cursor);
+
         return (
-          <div key={op.userId} className="w-full max-w-2xl rounded-md bg-neutral-800 p-4">
-            <div className="mb-2 flex justify-between text-sm text-neutral-300">
-              <span>{opName}</span>
-              <span>
-                WPM: <span className="text-white">{op.wpm}</span> | Accuracy:{' '}
-                <span className="text-white">{op.accuracy}%</span>
-              </span>
-            </div>
-            <div className="h-3 w-full overflow-hidden rounded bg-neutral-700">
-              <div
-                className="h-full bg-blue-500 transition-all duration-100"
-                style={{ width: `${opPercent}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-neutral-400">
-              Cursor: {op.cursor} / {text.length}
-            </div>
+          <div className="w-full max-w-2xl flex flex-col gap-2">
+            {allPlayers.map((p, rank) => {
+              const isMe = p.userId === myId;
+              const name = isMe ? playerName || 'You' : (roomPlayers.find((r) => r.id === p.userId)?.name ?? 'Opponent');
+              const percent = Math.min((p.cursor / text.length) * 100, 100);
+              return (
+                <div
+                  key={p.userId}
+                  className={`rounded-lg p-3 transition-all ${
+                    isMe
+                      ? 'bg-blue-600/20 border border-blue-500/40'
+                      : 'bg-neutral-800/80'
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold w-5 text-center ${rank === 0 ? 'text-yellow-400' : 'text-neutral-500'}`}>
+                        {rank + 1}
+                      </span>
+                      <span className={isMe ? 'text-blue-300 font-semibold' : 'text-neutral-300'}>
+                        {name}{isMe ? ' (you)' : ''}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 text-xs text-neutral-400">
+                      <span><span className={isMe ? 'text-blue-200' : 'text-white'}>{p.wpm}</span> WPM</span>
+                      <span><span className={isMe ? 'text-blue-200' : 'text-white'}>{p.accuracy}%</span> Acc</span>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-700">
+                    <div
+                      className={`h-full rounded-full transition-all duration-150 ${isMe ? 'bg-blue-400' : 'bg-neutral-400'}`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
-      })}
+      })()}
 
       <div className="max-w-2xl text-2xl leading-relaxed">
         {text.split('').map((char, index) => {
